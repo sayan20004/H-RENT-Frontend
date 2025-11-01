@@ -18,8 +18,12 @@ class APIService {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
     
-    func sendRegistrationOTP(firstName: String, lastName: String, email: String) async throws -> MessageResponse {
-        let body = RegistrationOTPRequest(firstName: firstName, lastName: lastName, email: email)
+    // --- MODIFICATION ---
+    // Add userType parameter
+    func sendRegistrationOTP(firstName: String, lastName: String, email: String, userType: String) async throws -> MessageResponse {
+        // --- MODIFICATION ---
+        // Include userType in the request body
+        let body = RegistrationOTPRequest(firstName: firstName, lastName: lastName, email: email, userType: userType)
         return try await performRequest(
             endpoint: "/auth/register-send-otp",
             method: "POST",
@@ -58,8 +62,12 @@ class APIService {
         return response
     }
     
-    func registerOrLoginWithGoogle(email: String, firstName: String, lastName: String, googleId: String) async throws -> AuthResponse {
-        let body = GoogleAuthRequest(email: email, firstName: firstName, lastName: lastName, googleId: googleId)
+    // --- MODIFICATION ---
+    // Add userType parameter for Google Auth
+    func registerOrLoginWithGoogle(email: String, firstName: String, lastName: String, googleId: String, userType: String) async throws -> AuthResponse {
+        // --- MODIFICATION ---
+        // Include userType in the request body
+        let body = GoogleAuthRequest(email: email, firstName: firstName, lastName: lastName, googleId: googleId, userType: userType)
         let response: AuthResponse = try await performRequest(
             endpoint: "/auth/google-auth",
             method: "POST",

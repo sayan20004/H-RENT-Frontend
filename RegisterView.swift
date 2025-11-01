@@ -6,14 +6,37 @@
 //
 import SwiftUI
 
+// --- MODIFICATION ---
+// A simple enum to manage the user role selection
+enum UserType: String, CaseIterable, Identifiable {
+    case user = "user"
+    case owner = "owner"
+    var id: Self { self }
+    
+    var displayName: String {
+        switch self {
+        case .user:
+            return "Normal User"
+        case .owner:
+            return "House Owner"
+        }
+    }
+}
+
 struct RegisterView: View {
-    @Binding var isLoggedIn: Bool
+    // --- MODIFICATION ---
+    // We now bind to the loggedInUser object instead of just a Bool
+    @Binding var loggedInUser: User?
     @Binding var authState: AuthState
     
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var email: String = ""
     @State private var otp: String = ""
+    
+    // --- MODIFICATION ---
+    // Add state for the new userType picker
+    @State private var userType: UserType = .user
     
     @State private var errorMessage: String?
     @State private var isOTPSent: Bool = false
@@ -59,6 +82,16 @@ struct RegisterView: View {
                     .autocapitalization(.none)
                     .textFieldStyle(.roundedBorder)
                 
+                // --- MODIFICATION ---
+                // Add a Picker to select the user role
+                Picker("I am a...", selection: $userType) {
+                    ForEach(UserType.allCases) { type in
+                        Text(type.displayName).tag(type)
+                    }
+                }
+                .pickerStyle(.segmented)
+                // --- END MODIFICATION ---
+
                 Button("Send Registration OTP") {
                     sendOTP()
                 }
@@ -91,10 +124,13 @@ struct RegisterView: View {
     func sendOTP() {
         Task {
             do {
+                // --- MODIFICATION ---
+                // Pass the userType to the API service
                 _ = try await APIService.shared.sendRegistrationOTP(
                     firstName: firstName,
                     lastName: lastName,
-                    email: email
+                    email: email,
+                    userType: userType.rawValue // Pass the selected role
                 )
                 self.isOTPSent = true
                 self.errorMessage = nil
@@ -113,7 +149,9 @@ struct RegisterView: View {
                 )
                 APIService.shared.authToken = response.token
                 self.errorMessage = nil
-                self.isLoggedIn = true
+                // --- MODIFICATION ---
+                // Set the full user object on success
+                self.loggedInUser = response.user
             } catch {
                 self.errorMessage = error.localizedDescription
             }

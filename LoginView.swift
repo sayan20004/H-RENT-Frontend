@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct LoginView: View {
-    @Binding var isLoggedIn: Bool
+    // --- MODIFICATION ---
+    // Bind to the loggedInUser object
+    @Binding var loggedInUser: User?
     @Binding var authState: AuthState
     
     @State private var email: String = ""
@@ -93,7 +95,9 @@ struct LoginView: View {
                 let response = try await APIService.shared.verifyLoginOTP(email: email, otp: otp)
                 APIService.shared.authToken = response.token
                 self.errorMessage = nil
-                self.isLoggedIn = true
+                // --- MODIFICATION ---
+                // Set the full user object on success
+                self.loggedInUser = response.user
             } catch {
                 self.errorMessage = error.localizedDescription
             }

@@ -1,46 +1,51 @@
 //
-//  HomeView.swift
+//  OwnerDashboardView.swift
 //  HRENT
 //
-//  Created by Sayan  Maity  on 31/10/25.
+//  Created by Sayan  Maity  on 01/11/25.
 //
 
 import SwiftUI
 
-struct HomeView: View {
-    // --- MODIFICATION ---
-    // Bind to the loggedInUser object
+// --- MODIFICATION ---
+// This is a brand new view for the "owner" dashboard
+struct OwnerDashboardView: View {
+    
+    // It also binds to the loggedInUser
     @Binding var loggedInUser: User?
     
     var body: some View {
         VStack(spacing: 20) {
             
-            Text("User Dashboard")
+            Text("Owner Dashboard")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            // --- MODIFICATION ---
-            // We get the user from the binding, no need to fetch
             if let user = loggedInUser {
-                Text("Welcome, \(user.firstName)!")
+                Text("Welcome, Owner \(user.firstName)!")
                     .font(.largeTitle)
+                    .foregroundColor(.green) // Make it look different
+                
                 Text(user.email)
                     .font(.headline)
+                
                 Text("Role: \(user.userType)")
                     .font(.subheadline)
                     .padding()
-                    .background(Color.blue.opacity(0.1))
+                    .background(Color.green.opacity(0.1))
                     .cornerRadius(8)
+                
+                // You would add your owner-specific controls here
+                Text("Manage your properties")
+                
             } else {
-                // This shouldn't really happen if ContentView is set up correctly
-                Text("Loading user data...")
+                Text("Loading owner data...")
             }
             
             Spacer()
             
             Button("Log Out") {
                 APIService.shared.authToken = nil
-                // --- MODIFICATION ---
                 // Set the user object to nil to log out
                 self.loggedInUser = nil
             }
