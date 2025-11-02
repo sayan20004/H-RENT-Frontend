@@ -5,14 +5,25 @@
 //  Created by Sayan  Maity  on 31/10/25.
 //
 
-//
-//  Models.swift
-//  HRENT
-//
-//  Created by Sayan  Maity  on 31/10/25.
-//
-
 import Foundation
+
+// --- MODIFICATION ---
+// Add the UserType enum here to make it globally available.
+// This will fix the "Cannot find type" error.
+enum UserType: String, CaseIterable, Identifiable, Codable {
+    case user = "user"
+    case owner = "owner"
+    var id: Self { self }
+    
+    var displayName: String {
+        switch self {
+        case .user:
+            return "Normal User"
+        case .owner:
+            return "House Owner"
+        }
+    }
+}
 
 struct User: Codable, Identifiable {
     let id: String
@@ -20,9 +31,10 @@ struct User: Codable, Identifiable {
     let lastName: String
     let email: String
     let isVerified: Bool
+    
     // --- MODIFICATION ---
-    // Add the new userType field to match your backend model
-    let userType: String
+    // Use the UserType enum directly
+    let userType: UserType
 
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -53,9 +65,10 @@ struct RegistrationOTPRequest: Encodable {
     let firstName: String
     let lastName: String
     let email: String
+    
     // --- MODIFICATION ---
-    // Add userType to send during registration
-    let userType: String
+    // Use the UserType enum for better type safety
+    let userType: UserType
 }
 
 struct VerifyOTPRequest: Encodable {
@@ -72,9 +85,10 @@ struct GoogleAuthRequest: Encodable {
     let firstName: String
     let lastName: String
     let googleId: String
+    
     // --- MODIFICATION ---
-    // Add userType to send during Google auth
-    let userType: String
+    // Use the UserType enum here as well
+    let userType: UserType
 }
 
 struct UpdateProfileRequest: Encodable {

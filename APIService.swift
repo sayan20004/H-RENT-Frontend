@@ -11,18 +11,27 @@ class APIService {
     
     static let shared = APIService()
     
+    // --- MODIFICATION ---
+    // Swapped to your local server URL for testing
+    // private let baseURL = URL(string: "http://localhost:5001/api")!
+    // Make sure to use your deployed URL for production
     private let baseURL = URL(string: "https://hrentapi.onrender.com/api")!
     
     var authToken: String?
     
-    private let decoder = JSONDecoder()
-    private let encoder = JSONEncoder()
+    private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
+
+    // --- MODIFICATION ---
+    // Initialize decoder in the init
+    init() {
+        decoder = JSONDecoder()
+        encoder = JSONEncoder()
+    }
     
     // --- MODIFICATION ---
-    // Add userType parameter
-    func sendRegistrationOTP(firstName: String, lastName: String, email: String, userType: String) async throws -> MessageResponse {
-        // --- MODIFICATION ---
-        // Include userType in the request body
+    // Changed the parameter from String to the UserType enum
+    func sendRegistrationOTP(firstName: String, lastName: String, email: String, userType: UserType) async throws -> MessageResponse {
         let body = RegistrationOTPRequest(firstName: firstName, lastName: lastName, email: email, userType: userType)
         return try await performRequest(
             endpoint: "/auth/register-send-otp",
@@ -38,6 +47,8 @@ class APIService {
             method: "POST",
             body: body
         )
+        // --- MODIFICATION ---
+        // Save the token on successful verification
         self.authToken = response.token
         return response
     }
@@ -58,21 +69,24 @@ class APIService {
             method: "POST",
             body: body
         )
+        // --- MODIFICATION ---
+        // Save the token on successful login
         self.authToken = response.token
         return response
     }
     
     // --- MODIFICATION ---
-    // Add userType parameter for Google Auth
-    func registerOrLoginWithGoogle(email: String, firstName: String, lastName: String, googleId: String, userType: String) async throws -> AuthResponse {
-        // --- MODIFICATION ---
-        // Include userType in the request body
+    // Changed the parameter from String to the UserType enum
+    // Also added a default "user" type for Google Sign in
+    func registerOrLoginWithGoogle(email: String, firstName: String, lastName: String, googleId: String, userType: UserType = .user) async throws -> AuthResponse {
         let body = GoogleAuthRequest(email: email, firstName: firstName, lastName: lastName, googleId: googleId, userType: userType)
         let response: AuthResponse = try await performRequest(
             endpoint: "/auth/google-auth",
             method: "POST",
             body: body
         )
+        // --- MODIFICATION ---
+        // Save the token on successful Google auth
         self.authToken = response.token
         return response
     }
@@ -94,6 +108,8 @@ class APIService {
             requiresAuth: true
         )
     }
+    
+    // --- Private Helper Functions ---
     
     private func performRequest<T: Decodable, U: Encodable>(
         endpoint: String,
@@ -148,15 +164,36 @@ class APIService {
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
+            if data.isEmpty {
+                throw APIError.requestFailed(statusCode: httpResponse.statusCode, message: "Request failed with status code \(httpResponse.statusCode).")
+            }
+            
             if let apiError = try? decoder.decode(APIErrorResponse.self, from: data) {
                 throw APIError.requestFailed(statusCode: httpResponse.statusCode, message: apiError.message)
             }
-            throw APIError.requestFailed(statusCode: httpResponse.statusCode, message: "Request failed.")
+            throw APIError.requestFailed(statusCode: httpResponse.statusCode, message: "An unknown error occurred.")
+        }
+        
+        // Handle empty success response
+        if data.isEmpty {
+            if T.self == MessageResponse.self {
+                 return MessageResponse(success: true, message: "Operation successful") as! T
+            } else {
+                // If we expect data but get none, it's a decoding error
+                throw APIError.decodingError(URLError(.cannotParseResponse))
+            }
         }
         
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
+            print("--- DECODING ERROR ---")
+            print(error)
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("--- FAILED JSON ---")
+                print(jsonString)
+            }
+            print("----------------------")
             throw APIError.decodingError(error)
         }
     }

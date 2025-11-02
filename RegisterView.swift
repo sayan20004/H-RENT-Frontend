@@ -7,25 +7,10 @@
 import SwiftUI
 
 // --- MODIFICATION ---
-// A simple enum to manage the user role selection
-enum UserType: String, CaseIterable, Identifiable {
-    case user = "user"
-    case owner = "owner"
-    var id: Self { self }
-    
-    var displayName: String {
-        switch self {
-        case .user:
-            return "Normal User"
-        case .owner:
-            return "House Owner"
-        }
-    }
-}
+// The UserType enum definition is REMOVED from this file.
+// It is now in Models.swift.
 
 struct RegisterView: View {
-    // --- MODIFICATION ---
-    // We now bind to the loggedInUser object instead of just a Bool
     @Binding var loggedInUser: User?
     @Binding var authState: AuthState
     
@@ -34,18 +19,25 @@ struct RegisterView: View {
     @State private var email: String = ""
     @State private var otp: String = ""
     
-    // --- MODIFICATION ---
-    // Add state for the new userType picker
+    // This will now correctly find the global UserType from Models.swift
     @State private var userType: UserType = .user
     
     @State private var errorMessage: String?
     @State private var isOTPSent: Bool = false
     
+    private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
+    
     var body: some View {
         VStack(spacing: 15) {
             HStack {
                 Button {
-                    authState = .welcome
+                    if isOTPSent {
+                        isOTPSent = false
+                        errorMessage = nil
+                        otp = ""
+                    } else {
+                        authState = .welcome
+                    }
                 } label: {
                     Image(systemName: "chevron.left")
                     Text("Back")
@@ -54,23 +46,37 @@ struct RegisterView: View {
             }
             .padding(.bottom, 20)
             
-            Text("Sign Up")
+            Text(isOTPSent ? "Enter OTP" : "Sign Up")
                 .font(.largeTitle)
                 .fontWeight(.bold)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
             if isOTPSent {
-                TextField("OTP", text: $otp)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
+                Text("Enter the 6-digit OTP code that we sent to")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Button("Verify & Sign Up") {
+                Text(email)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 10)
+                
+                OTPInputView(otp: $otp)
+                
+                TimerView(onResend: sendOTP)
+                    .padding(.top, 10)
+
+                Button("Confirm & Sign Up") {
                     verifyRegistration()
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
-                .background(Color.blue)
+                .background(appGreen)
                 .foregroundColor(.white)
-                .cornerRadius(10)
+                .cornerRadius(14)
+                .padding(.top, 20)
                 
             } else {
                 TextField("First Name", text: $firstName)
@@ -82,24 +88,22 @@ struct RegisterView: View {
                     .autocapitalization(.none)
                     .textFieldStyle(.roundedBorder)
                 
-                // --- MODIFICATION ---
-                // Add a Picker to select the user role
+                // This Picker will now work and won't cause the "Generic parameter" error
                 Picker("I am a...", selection: $userType) {
                     ForEach(UserType.allCases) { type in
                         Text(type.displayName).tag(type)
                     }
                 }
                 .pickerStyle(.segmented)
-                // --- END MODIFICATION ---
 
                 Button("Send Registration OTP") {
                     sendOTP()
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
-                .background(Color.blue)
+                .background(appGreen)
                 .foregroundColor(.white)
-                .cornerRadius(10)
+                .cornerRadius(14)
             }
             
             if let errorMessage = errorMessage {
@@ -122,15 +126,18 @@ struct RegisterView: View {
     }
     
     func sendOTP() {
+        otp = ""
+        errorMessage = nil
         Task {
             do {
                 // --- MODIFICATION ---
-                // Pass the userType to the API service
+                // We now pass the 'userType' enum case directly.
+                // JSONEncoder will handle converting it to a string ("user" or "owner").
                 _ = try await APIService.shared.sendRegistrationOTP(
                     firstName: firstName,
                     lastName: lastName,
                     email: email,
-                    userType: userType.rawValue // Pass the selected role
+                    userType: userType
                 )
                 self.isOTPSent = true
                 self.errorMessage = nil
@@ -149,8 +156,6 @@ struct RegisterView: View {
                 )
                 APIService.shared.authToken = response.token
                 self.errorMessage = nil
-                // --- MODIFICATION ---
-                // Set the full user object on success
                 self.loggedInUser = response.user
             } catch {
                 self.errorMessage = error.localizedDescription

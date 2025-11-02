@@ -35,7 +35,7 @@ struct ContentView: View {
         else if let user = loggedInUser {
             // --- MODIFICATION ---
             // Now we can route based on the user's role
-            if user.userType == "owner" {
+            if user.userType == .owner {
                 OwnerDashboardView(loggedInUser: $loggedInUser)
             } else {
                 HomeView(loggedInUser: $loggedInUser)
@@ -79,3 +79,4 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
+
