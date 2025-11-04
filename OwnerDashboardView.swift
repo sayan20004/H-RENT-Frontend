@@ -1,59 +1,74 @@
-//
-//  OwnerDashboardView.swift
-//  HRENT
-//
-//  Created by Sayan  Maity  on 01/11/25.
-//
-
 import SwiftUI
 
-// --- MODIFICATION ---
-// This is a brand new view for the "owner" dashboard
 struct OwnerDashboardView: View {
     
-    // It also binds to the loggedInUser
     @Binding var loggedInUser: User?
     
+    @State private var myProperties: [Property] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var isShowingEditor = false
+    @State private var propertyToEdit: Property?
+    
     var body: some View {
-        VStack(spacing: 20) {
-            
-            Text("Owner Dashboard")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            if let user = loggedInUser {
-                Text("Welcome, Owner \(user.firstName)!")
-                    .font(.largeTitle)
-                    .foregroundColor(.green) // Make it look different
-                
-                Text(user.email)
-                    .font(.headline)
-                
-                Text("Role: \(user.userType)")
-                    .font(.subheadline)
-                    .padding()
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-                
-                // You would add your owner-specific controls here
-                Text("Manage your properties")
-                
-            } else {
-                Text("Loading owner data...")
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    if isLoading {
+                        ProgressView()
+                    } else if let errorMessage = errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .padding()
+                    } else if myProperties.isEmpty {
+                        Text("You haven't listed any properties yet.")
+                            .foregroundColor(.secondary)
+                            .padding(.top, 50)
+                    } else {
+                        ForEach(myProperties) { property in
+                            PropertyCardView(property: property)
+                                .onTapGesture {
+                                    self.propertyToEdit = property
+                                    self.isShowingEditor = true
+                                }
+                        }
+                    }
+                }
+                .padding()
             }
-            
-            Spacer()
-            
-            Button("Log Out") {
-                APIService.shared.authToken = nil
-                // Set the user object to nil to log out
-                self.loggedInUser = nil
+            .navigationTitle("My Properties")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        self.propertyToEdit = nil
+                        self.isShowingEditor = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
             }
-            .padding()
-            .background(Color.red)
-            .foregroundColor(.white)
-            .cornerRadius(10)
+            .task {
+                await loadMyProperties()
+            }
+            .sheet(isPresented: $isShowingEditor) {
+                PropertyEditorView(propertyToEdit: propertyToEdit) {
+                    Task {
+                        await loadMyProperties()
+                    }
+                }
+            }
         }
-        .padding()
+    }
+    
+    func loadMyProperties() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let response = try await APIService.shared.getMyProperties()
+            self.myProperties = response.properties
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+        isLoading = false
     }
 }

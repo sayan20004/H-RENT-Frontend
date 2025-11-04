@@ -1,54 +1,55 @@
-//
-//  HomeView.swift
-//  HRENT
-//
-//  Created by Sayan  Maity  on 31/10/25.
-//
-
 import SwiftUI
 
 struct HomeView: View {
-    // --- MODIFICATION ---
-    // Bind to the loggedInUser object
     @Binding var loggedInUser: User?
+    @State private var properties: [Property] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
     
     var body: some View {
-        VStack(spacing: 20) {
-            
-            Text("User Dashboard")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            // --- MODIFICATION ---
-            // We get the user from the binding, no need to fetch
-            if let user = loggedInUser {
-                Text("Welcome, \(user.firstName)!")
-                    .font(.largeTitle)
-                Text(user.email)
-                    .font(.headline)
-                Text("Role: \(user.userType)")
-                    .font(.subheadline)
-                    .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
-            } else {
-                // This shouldn't really happen if ContentView is set up correctly
-                Text("Loading user data...")
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    if isLoading {
+                        ProgressView()
+                    } else if let errorMessage = errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .padding()
+                    } else if properties.isEmpty {
+                        Text("No properties available right now.")
+                            .foregroundColor(.secondary)
+                            .padding(.top, 50)
+                    } else {
+                        ForEach(properties) { property in
+                            NavigationLink(destination: PropertyDetailView(property: property)) {
+                                PropertyCardView(property: property)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding()
             }
-            
-            Spacer()
-            
-            Button("Log Out") {
-                APIService.shared.authToken = nil
-                // --- MODIFICATION ---
-                // Set the user object to nil to log out
-                self.loggedInUser = nil
+            .navigationTitle("Browse Properties")
+            .task {
+                await loadProperties()
             }
-            .padding()
-            .background(Color.red)
-            .foregroundColor(.white)
-            .cornerRadius(10)
+            .refreshable {
+                await loadProperties()
+            }
         }
-        .padding()
+    }
+    
+    func loadProperties() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let response = try await APIService.shared.getAllProperties()
+            self.properties = response.properties
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+        isLoading = false
     }
 }

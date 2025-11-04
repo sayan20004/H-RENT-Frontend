@@ -1,15 +1,6 @@
-//
-//  Models.swift
-//  HRENT
-//
-//  Created by Sayan  Maity  on 31/10/25.
-//
-
 import Foundation
+import SwiftUI
 
-// --- MODIFICATION ---
-// Add the UserType enum here to make it globally available.
-// This will fix the "Cannot find type" error.
 enum UserType: String, CaseIterable, Identifiable, Codable {
     case user = "user"
     case owner = "owner"
@@ -31,19 +22,136 @@ struct User: Codable, Identifiable {
     let lastName: String
     let email: String
     let isVerified: Bool
-    
-    // --- MODIFICATION ---
-    // Use the UserType enum directly
     let userType: UserType
 
     enum CodingKeys: String, CodingKey {
         case id = "_id"
         case firstName, lastName, email, isVerified
-        // --- MODIFICATION ---
-        // Add userType to the coding keys
         case userType
     }
 }
+
+enum PricingFrequency: String, CaseIterable, Identifiable, Codable {
+    case monthly
+    case weekly
+    case quarterly
+    case yearly
+    var id: Self { self }
+    
+    var displayName: String {
+        return self.rawValue.capitalized
+    }
+}
+
+struct PropertyOwner: Codable {
+    let firstName: String
+    let lastName: String
+    let email: String
+}
+
+struct Property: Codable, Identifiable, Hashable {
+    static func == (lhs: Property, rhs: Property) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    let id: String
+    let owner: PropertyOwner
+    let title: String
+    let description: String
+    let address: String
+    let images: [String]
+    let price: Double
+    let pricingFrequency: PricingFrequency
+    let allowBargaining: Bool
+    let isAvailable: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case owner, title, description, address, images, price, pricingFrequency, allowBargaining, isAvailable
+    }
+}
+
+enum RentalStatus: String, Codable {
+    case pending
+    case accepted
+    case denied
+    case cancelled
+    case cancellationRequested
+    
+    var displayName: String {
+        switch self {
+        case .pending:
+            return "Pending"
+        case .accepted:
+            return "Accepted"
+        case .denied:
+            return "Denied"
+        case .cancelled:
+            return "Cancelled"
+        case .cancellationRequested:
+            return "Cancellation Requested"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .pending:
+            return .orange
+        case .accepted:
+            return .green
+        case .denied:
+            return .red
+        case .cancelled:
+            return .gray
+        case .cancellationRequested:
+            return .blue
+        }
+    }
+}
+
+struct RentalProperty: Codable, Identifiable {
+    let id: String
+    let title: String
+    let images: [String]
+    let price: Double
+    let pricingFrequency: PricingFrequency
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case title, images, price, pricingFrequency
+    }
+}
+
+struct RentalUser: Codable, Identifiable {
+    let id: String
+    let firstName: String
+    let lastName: String
+    let email: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case firstName, lastName, email
+    }
+}
+
+struct Rental: Codable, Identifiable {
+    let id: String
+    let property: RentalProperty
+    let tenant: RentalUser
+    let owner: RentalUser
+    var status: RentalStatus
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case property, tenant, owner, status
+    }
+}
+
+// MARK: - API Payloads
 
 struct AuthResponse: Codable {
     let success: Bool
@@ -61,13 +169,30 @@ struct MessageResponse: Codable {
     let message: String
 }
 
+struct PropertiesResponse: Codable {
+    let success: Bool
+    let properties: [Property]
+}
+
+struct PropertyResponse: Codable {
+    let success: Bool
+    let property: Property
+}
+
+struct RentalsResponse: Codable {
+    let success: Bool
+    let rentals: [Rental]
+}
+
+struct RentalResponse: Codable {
+    let success: Bool
+    let rental: Rental
+}
+
 struct RegistrationOTPRequest: Encodable {
     let firstName: String
     let lastName: String
     let email: String
-    
-    // --- MODIFICATION ---
-    // Use the UserType enum for better type safety
     let userType: UserType
 }
 
@@ -85,13 +210,39 @@ struct GoogleAuthRequest: Encodable {
     let firstName: String
     let lastName: String
     let googleId: String
-    
-    // --- MODIFICATION ---
-    // Use the UserType enum here as well
     let userType: UserType
 }
 
 struct UpdateProfileRequest: Encodable {
     let firstName: String?
     let lastName: String?
+}
+
+struct CreatePropertyRequest: Encodable {
+    let title: String
+    let description: String
+    let address: String
+    let images: [String]
+    let price: Double
+    let pricingFrequency: PricingFrequency
+    let allowBargaining: Bool
+}
+
+struct UpdatePropertyRequest: Encodable {
+    let title: String?
+    let description: String?
+    let address: String?
+    let images: [String]?
+    let price: Double?
+    let pricingFrequency: PricingFrequency?
+    let allowBargaining: Bool?
+    let isAvailable: Bool?
+}
+
+struct CreateRentalRequest: Encodable {
+    let propertyId: String
+}
+
+struct UpdateRentalStatusRequest: Encodable {
+    let status: RentalStatus
 }

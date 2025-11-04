@@ -1,36 +1,36 @@
-//
-//  APIService.swift
-//  HRENT
-//
-//  Created by Sayan  Maity  on 31/10/25.
-//
-
 import Foundation
 
 class APIService {
     
     static let shared = APIService()
     
-    // --- MODIFICATION ---
-    // Swapped to your local server URL for testing
-    // private let baseURL = URL(string: "http://localhost:5001/api")!
-    // Make sure to use your deployed URL for production
     private let baseURL = URL(string: "https://hrentapi.onrender.com/api")!
     
-    var authToken: String?
+    private let tokenKey = "authToken"
+    
+    var authToken: String? {
+        get {
+            UserDefaults.standard.string(forKey: tokenKey)
+        }
+        set {
+            if let token = newValue {
+                UserDefaults.standard.setValue(token, forKey: tokenKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: tokenKey)
+            }
+        }
+    }
     
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    // --- MODIFICATION ---
-    // Initialize decoder in the init
     init() {
         decoder = JSONDecoder()
         encoder = JSONEncoder()
     }
     
-    // --- MODIFICATION ---
-    // Changed the parameter from String to the UserType enum
+    // MARK: - Auth
+    
     func sendRegistrationOTP(firstName: String, lastName: String, email: String, userType: UserType) async throws -> MessageResponse {
         let body = RegistrationOTPRequest(firstName: firstName, lastName: lastName, email: email, userType: userType)
         return try await performRequest(
@@ -47,8 +47,6 @@ class APIService {
             method: "POST",
             body: body
         )
-        // --- MODIFICATION ---
-        // Save the token on successful verification
         self.authToken = response.token
         return response
     }
@@ -69,15 +67,10 @@ class APIService {
             method: "POST",
             body: body
         )
-        // --- MODIFICATION ---
-        // Save the token on successful login
         self.authToken = response.token
         return response
     }
     
-    // --- MODIFICATION ---
-    // Changed the parameter from String to the UserType enum
-    // Also added a default "user" type for Google Sign in
     func registerOrLoginWithGoogle(email: String, firstName: String, lastName: String, googleId: String, userType: UserType = .user) async throws -> AuthResponse {
         let body = GoogleAuthRequest(email: email, firstName: firstName, lastName: lastName, googleId: googleId, userType: userType)
         let response: AuthResponse = try await performRequest(
@@ -85,11 +78,11 @@ class APIService {
             method: "POST",
             body: body
         )
-        // --- MODIFICATION ---
-        // Save the token on successful Google auth
         self.authToken = response.token
         return response
     }
+    
+    // MARK: - User
     
     func getUserProfile() async throws -> UserProfileResponse {
         return try await performRequest(
@@ -108,6 +101,106 @@ class APIService {
             requiresAuth: true
         )
     }
+    
+    // MARK: - Properties
+    
+    func getAllProperties() async throws -> PropertiesResponse {
+        return try await performRequest(
+            endpoint: "/properties",
+            method: "GET",
+            requiresAuth: true
+        )
+    }
+    
+    func getMyProperties() async throws -> PropertiesResponse {
+        return try await performRequest(
+            endpoint: "/properties/my-properties",
+            method: "GET",
+            requiresAuth: true
+        )
+    }
+    
+    func createProperty(
+        title: String,
+        description: String,
+        address: String,
+        images: [String],
+        price: Double,
+        pricingFrequency: PricingFrequency,
+        allowBargaining: Bool
+    ) async throws -> PropertyResponse {
+        let body = CreatePropertyRequest(
+            title: title,
+            description: description,
+            address: address,
+            images: images,
+            price: price,
+            pricingFrequency: pricingFrequency,
+            allowBargaining: allowBargaining
+        )
+        return try await performRequest(
+            endpoint: "/properties",
+            method: "POST",
+            body: body,
+            requiresAuth: true
+        )
+    }
+    
+    func updateProperty(id: String, requestBody: UpdatePropertyRequest) async throws -> PropertyResponse {
+        return try await performRequest(
+            endpoint: "/properties/\(id)",
+            method: "PUT",
+            body: requestBody,
+            requiresAuth: true
+        )
+    }
+    
+    func deleteProperty(id: String) async throws -> MessageResponse {
+        return try await performRequest(
+            endpoint: "/properties/\(id)",
+            method: "DELETE",
+            requiresAuth: true
+        )
+    }
+    
+    // MARK: - Rentals
+    
+    func createRentalRequest(propertyId: String) async throws -> RentalResponse {
+        let body = CreateRentalRequest(propertyId: propertyId)
+        return try await performRequest(
+            endpoint: "/rentals",
+            method: "POST",
+            body: body,
+            requiresAuth: true
+        )
+    }
+    
+    func getMyRentalRequests() async throws -> RentalsResponse {
+        return try await performRequest(
+            endpoint: "/rentals/my-requests",
+            method: "GET",
+            requiresAuth: true
+        )
+    }
+    
+    func getIncomingRentalRequests() async throws -> RentalsResponse {
+        return try await performRequest(
+            endpoint: "/rentals/incoming-requests",
+            method: "GET",
+            requiresAuth: true
+        )
+    }
+    
+    func updateRentalStatus(id: String, status: RentalStatus) async throws -> RentalResponse {
+        let body = UpdateRentalStatusRequest(status: status)
+        return try await performRequest(
+            endpoint: "/rentals/\(id)/status",
+            method: "PUT",
+            body: body,
+            requiresAuth: true
+        )
+    }
+
     
     // --- Private Helper Functions ---
     
@@ -174,12 +267,10 @@ class APIService {
             throw APIError.requestFailed(statusCode: httpResponse.statusCode, message: "An unknown error occurred.")
         }
         
-        // Handle empty success response
         if data.isEmpty {
             if T.self == MessageResponse.self {
                  return MessageResponse(success: true, message: "Operation successful") as! T
             } else {
-                // If we expect data but get none, it's a decoding error
                 throw APIError.decodingError(URLError(.cannotParseResponse))
             }
         }
