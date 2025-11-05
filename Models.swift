@@ -126,7 +126,7 @@ struct RentalProperty: Codable, Identifiable {
     }
 }
 
-struct RentalUser: Codable, Identifiable {
+struct RentalUser: Codable, Identifiable, Equatable {
     let id: String
     let firstName: String
     let lastName: String
@@ -150,6 +150,61 @@ struct Rental: Codable, Identifiable {
         case property, tenant, owner, status
     }
 }
+
+struct ConversationRentalProperty: Codable {
+    let title: String
+    let images: [String]
+    let price: Double
+    let pricingFrequency: PricingFrequency
+    
+    enum CodingKeys: String, CodingKey {
+        case title, images, price, pricingFrequency
+    }
+}
+
+struct ConversationRental: Codable {
+    let property: ConversationRentalProperty
+}
+
+struct Conversation: Codable, Identifiable {
+    let id: String
+    let rental: ConversationRental
+    let participants: [RentalUser]
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case rental, participants
+    }
+}
+
+struct Reaction: Codable, Identifiable, Equatable {
+    var id: String { user.id }
+    let emoji: String
+    let user: RentalUser
+}
+
+struct Message: Codable, Identifiable, Equatable {
+    let id: String
+    let conversation: String
+    let sender: RentalUser
+    var text: String
+    var isEdited: Bool?
+    var reactions: [Reaction]
+    let createdAt: String
+    
+    var canBeEdited: Bool {
+        guard let date = ISO8601DateFormatter().date(from: createdAt) else {
+            return false
+        }
+        return Date().timeIntervalSince(date) < 120
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case conversation, sender, text, isEdited, reactions, createdAt
+    }
+}
+
 
 // MARK: - API Payloads
 
@@ -187,6 +242,26 @@ struct RentalsResponse: Codable {
 struct RentalResponse: Codable {
     let success: Bool
     let rental: Rental
+}
+
+struct ConversationsResponse: Codable {
+    let success: Bool
+    let conversations: [Conversation]
+}
+
+struct ConversationResponse: Codable {
+    let success: Bool
+    let conversation: Conversation
+}
+
+struct MessagesResponse: Codable {
+    let success: Bool
+    let messages: [Message]
+}
+
+struct MessageServiceResponse: Codable {
+    let success: Bool
+    let message: Message
 }
 
 struct RegistrationOTPRequest: Encodable {
@@ -245,4 +320,20 @@ struct CreateRentalRequest: Encodable {
 
 struct UpdateRentalStatusRequest: Encodable {
     let status: RentalStatus
+}
+
+struct InitiateChatRequest: Encodable {
+    let rentalId: String
+}
+
+struct SendMessageRequest: Encodable {
+    let text: String
+}
+
+struct EditMessageRequest: Encodable {
+    let text: String
+}
+
+struct ReactToMessageRequest: Encodable {
+    let emoji: String
 }

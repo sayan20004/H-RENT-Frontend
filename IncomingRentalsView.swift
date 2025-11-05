@@ -70,6 +70,17 @@ struct IncomingRentalsView: View {
                                     }
                                     .padding(.horizontal)
                                     .padding(.bottom)
+                                } else if rental.status == .accepted {
+                                    NavigationLink(destination: ChatNavigator(rentalId: rental.id)) {
+                                        Text("Contact Tenant")
+                                            .padding()
+                                            .frame(maxWidth: .infinity)
+                                            .background(appGreen)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(10)
+                                    }
+                                    .padding(.horizontal)
+                                    .padding(.bottom)
                                 }
                             }
                         }

@@ -26,7 +26,7 @@ struct RentalCardView: View {
                     .font(.headline)
                     .lineLimit(1)
                 
-                Text("$\(String(format: "%.2f", rental.property.price)) / \(rental.property.pricingFrequency.displayName)")
+                Text("$\(String(format: "%.2f", rental.property.price ?? 0.0)) / \(rental.property.pricingFrequency.displayName)")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
@@ -53,3 +53,4 @@ struct RentalCardView: View {
         )
     }
 }
+

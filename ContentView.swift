@@ -45,6 +45,11 @@ struct ContentView: View {
                         }
                 }
                 
+                ChatListView()
+                    .tabItem {
+                        Label("Chat", systemImage: "message.fill")
+                    }
+                
                 ProfileSettingsView(loggedInUser: $loggedInUser)
                     .tabItem {
                         Label("Profile", systemImage: "person.fill")

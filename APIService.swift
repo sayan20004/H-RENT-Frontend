@@ -18,16 +18,64 @@ class APIService {
             } else {
                 UserDefaults.standard.removeObject(forKey: tokenKey)
             }
+            self.updateUserId()
         }
     }
+    
+    private(set) var userId: String?
     
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
     init() {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
         decoder = JSONDecoder()
+        
         encoder = JSONEncoder()
+        
+        self.updateUserId()
     }
+    
+    private func updateUserId() {
+        guard let token = authToken else {
+            self.userId = nil
+            return
+        }
+        
+        let segments = token.split(separator: ".").map { String($0) }
+        
+        guard segments.count > 1 else {
+            self.userId = nil
+            return
+        }
+        
+        self.userId = decodeJWT(token: token)["id"] as? String
+    }
+    
+    private func decodeJWT(token jwt: String) -> [String: Any] {
+      let segments = jwt.split(separator: ".")
+      guard segments.count > 1 else {
+        return [:]
+      }
+      
+      var base64String = String(segments[1])
+      
+      let requiredLength = 4 * ceil(Double(base64String.count) / 4.0)
+      let paddingLength = Int(requiredLength) - base64String.count
+      if paddingLength > 0 {
+          let padding = String(repeating: "=", count: paddingLength)
+          base64String += padding
+      }
+      
+      guard let data = Data(base64Encoded: base64String, options: .ignoreUnknownCharacters) else {
+        return [:]
+      }
+      
+      return (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] ?? [:]
+    }
+
     
     // MARK: - Auth
     
@@ -196,6 +244,64 @@ class APIService {
         return try await performRequest(
             endpoint: "/rentals/\(id)/status",
             method: "PUT",
+            body: body,
+            requiresAuth: true
+        )
+    }
+    
+    // MARK: - Chat
+    
+    func getMyConversations() async throws -> ConversationsResponse {
+        return try await performRequest(
+            endpoint: "/chat",
+            method: "GET",
+            requiresAuth: true
+        )
+    }
+    
+    func getOrCreateConversation(rentalId: String) async throws -> ConversationResponse {
+        let body = InitiateChatRequest(rentalId: rentalId)
+        return try await performRequest(
+            endpoint: "/chat/initiate",
+            method: "POST",
+            body: body,
+            requiresAuth: true
+        )
+    }
+    
+    func getMessages(conversationId: String) async throws -> MessagesResponse {
+        return try await performRequest(
+            endpoint: "/chat/\(conversationId)/messages",
+            method: "GET",
+            requiresAuth: true
+        )
+    }
+    
+    func sendMessage(conversationId: String, text: String) async throws -> MessageServiceResponse {
+        let body = SendMessageRequest(text: text)
+        return try await performRequest(
+            endpoint: "/chat/\(conversationId)/messages",
+            method: "POST",
+            body: body,
+            requiresAuth: true
+        )
+    }
+    
+    func editMessage(messageId: String, text: String) async throws -> MessageServiceResponse {
+        let body = EditMessageRequest(text: text)
+        return try await performRequest(
+            endpoint: "/chat/messages/\(messageId)",
+            method: "PUT",
+            body: body,
+            requiresAuth: true
+        )
+    }
+    
+    func reactToMessage(messageId: String, emoji: String) async throws -> MessageServiceResponse {
+        let body = ReactToMessageRequest(emoji: emoji)
+        return try await performRequest(
+            endpoint: "/chat/messages/\(messageId)/react",
+            method: "POST",
             body: body,
             requiresAuth: true
         )
