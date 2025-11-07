@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ChatDetailView: View {
     let conversation: Conversation
@@ -8,6 +9,9 @@ struct ChatDetailView: View {
     
     @State private var messageToEdit: Message?
     @State private var textForEditing: String = ""
+    
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var isUploadingImage: Bool = false
     
     private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
     
@@ -57,17 +61,35 @@ struct ChatDetailView: View {
             }
             
             HStack(spacing: 12) {
-                TextField("Type a message...", text: $newMessageText)
-                    .textFieldStyle(.roundedBorder)
-                
-                Button {
-                    sendMessage()
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill")
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
+                    Image(systemName: "plus.circle.fill")
                         .font(.largeTitle)
                         .foregroundColor(appGreen)
                 }
-                .disabled(newMessageText.isEmpty)
+                .onChange(of: selectedPhotoItem) {
+                    Task {
+                        if let data = try? await selectedPhotoItem?.loadTransferable(type: Data.self) {
+                            self.selectedPhotoItem = nil
+                            await sendPhoto(imageData: data)
+                        }
+                    }
+                }
+                
+                TextField("Type a message...", text: $newMessageText)
+                    .textFieldStyle(.roundedBorder)
+                
+                if isUploadingImage {
+                    ProgressView()
+                } else {
+                    Button {
+                        sendMessage()
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(appGreen)
+                    }
+                    .disabled(newMessageText.isEmpty)
+                }
             }
             .padding()
         }
@@ -84,7 +106,7 @@ struct ChatDetailView: View {
             reactTo(message: message, emoji: emoji)
         case .edit:
             self.messageToEdit = message.wrappedValue
-            self.textForEditing = message.wrappedValue.text
+            self.textForEditing = message.wrappedValue.text ?? ""
         }
     }
     
@@ -112,7 +134,8 @@ struct ChatDetailView: View {
             do {
                 let response = try await APIService.shared.sendMessage(
                     conversationId: conversation.id,
-                    text: textToSend
+                    text: textToSend,
+                    imageUrl: nil
                 )
                 self.messages.append(response.message)
             } catch {
@@ -120,6 +143,25 @@ struct ChatDetailView: View {
                 self.newMessageText = textToSend
             }
         }
+    }
+    
+    func sendPhoto(imageData: Data) async {
+        isUploadingImage = true
+        errorMessage = nil
+        do {
+            let uploadResponse = try await APIService.shared.uploadImage(imageData: imageData)
+            
+            let messageResponse = try await APIService.shared.sendMessage(
+                conversationId: conversation.id,
+                text: nil,
+                imageUrl: uploadResponse.imageUrl
+            )
+            self.messages.append(messageResponse.message)
+            
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+        isUploadingImage = false
     }
     
     func saveEditedMessage() {
@@ -176,18 +218,7 @@ struct MessageBubble: View {
         HStack {
             if isFromMe {
                 Spacer()
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(message.text)
-                    if message.isEdited == true {
-                        Text("(edited)")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                }
-                .padding(12)
-                .background(appGreen)
-                .foregroundColor(.white)
-                .cornerRadius(16, corners: [.topLeft, .bottomLeft, .bottomRight])
+                messageContent
                 .contextMenu {
                     if message.canBeEdited {
                         Button {
@@ -198,17 +229,7 @@ struct MessageBubble: View {
                     }
                 }
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(message.text)
-                    if message.isEdited == true {
-                        Text("(edited)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(12)
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(16, corners: [.topRight, .bottomLeft, .bottomRight])
+                messageContent
                 .contextMenu {
                     ControlGroup {
                         ForEach(emojiReactions, id: \.self) { emoji in
@@ -236,6 +257,39 @@ struct MessageBubble: View {
             }
             .offset(y: 12)
         }
+    }
+    
+    @ViewBuilder
+    private var messageContent: some View {
+        VStack(alignment: isFromMe ? .trailing : .leading, spacing: 4) {
+            if let imageUrl = message.imageUrl {
+                AsyncImage(url: URL(string: imageUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: 250, maxHeight: 300)
+                        .cornerRadius(10)
+                        .clipped()
+                } placeholder: {
+                    ProgressView()
+                        .frame(width: 250, height: 300)
+                }
+            }
+            
+            if let text = message.text, !text.isEmpty {
+                Text(text)
+            }
+            
+            if message.isEdited == true {
+                Text("(edited)")
+                    .font(.caption2)
+                    .foregroundColor(isFromMe ? .white.opacity(0.8) : .secondary)
+            }
+        }
+        .padding(12)
+        .background(isFromMe ? appGreen : Color(.secondarySystemBackground))
+        .foregroundColor(isFromMe ? .white : .primary)
+        .cornerRadius(16, corners: isFromMe ? [.topLeft, .bottomLeft, .bottomRight] : [.topRight, .bottomLeft, .bottomRight])
     }
 }
 

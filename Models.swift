@@ -43,6 +43,17 @@ enum PricingFrequency: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum PropertyStatus: String, CaseIterable, Identifiable, Codable {
+    case active
+    case hidden
+    case deleted
+    var id: Self { self }
+    
+    var displayName: String {
+        return self.rawValue.capitalized
+    }
+}
+
 struct PropertyOwner: Codable {
     let firstName: String
     let lastName: String
@@ -67,11 +78,11 @@ struct Property: Codable, Identifiable, Hashable {
     let price: Double
     let pricingFrequency: PricingFrequency
     let allowBargaining: Bool
-    let isAvailable: Bool
+    let status: PropertyStatus
 
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case owner, title, description, address, images, price, pricingFrequency, allowBargaining, isAvailable
+        case owner, title, description, address, images, price, pricingFrequency, allowBargaining, status
     }
 }
 
@@ -187,13 +198,14 @@ struct Message: Codable, Identifiable, Equatable {
     let id: String
     let conversation: String
     let sender: RentalUser
-    var text: String
+    var text: String?
+    var imageUrl: String?
     var isEdited: Bool?
     var reactions: [Reaction]
     let createdAt: String
     
     var canBeEdited: Bool {
-        guard let date = ISO8601DateFormatter().date(from: createdAt) else {
+        guard imageUrl == nil, let date = ISO8601DateFormatter().date(from: createdAt) else {
             return false
         }
         return Date().timeIntervalSince(date) < 120
@@ -201,7 +213,7 @@ struct Message: Codable, Identifiable, Equatable {
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case conversation, sender, text, isEdited, reactions, createdAt
+        case conversation, sender, text, imageUrl, isEdited, reactions, createdAt
     }
 }
 
@@ -264,6 +276,11 @@ struct MessageServiceResponse: Codable {
     let message: Message
 }
 
+struct UploadResponse: Codable {
+    let success: Bool
+    let imageUrl: String
+}
+
 struct RegistrationOTPRequest: Encodable {
     let firstName: String
     let lastName: String
@@ -311,7 +328,7 @@ struct UpdatePropertyRequest: Encodable {
     let price: Double?
     let pricingFrequency: PricingFrequency?
     let allowBargaining: Bool?
-    let isAvailable: Bool?
+    let status: PropertyStatus?
 }
 
 struct CreateRentalRequest: Encodable {
@@ -327,7 +344,8 @@ struct InitiateChatRequest: Encodable {
 }
 
 struct SendMessageRequest: Encodable {
-    let text: String
+    let text: String?
+    let imageUrl: String?
 }
 
 struct EditMessageRequest: Encodable {

@@ -23,6 +23,19 @@ struct PropertyCardView: View {
                             .foregroundColor(.secondary)
                     )
             }
+            .overlay(alignment: .topLeading) {
+                if property.status != .active {
+                    Text(property.status.displayName)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(property.status == .hidden ? .yellow : .red)
+                        .foregroundColor(property.status == .hidden ? .black : .white)
+                        .cornerRadius(6)
+                        .padding(8)
+                }
+            }
             
             VStack(alignment: .leading, spacing: 8) {
                 Text(property.title)

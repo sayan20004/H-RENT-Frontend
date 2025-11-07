@@ -152,9 +152,18 @@ class APIService {
     
     // MARK: - Properties
     
-    func getAllProperties() async throws -> PropertiesResponse {
+    func getAllProperties(sortBy: String) async throws -> PropertiesResponse {
+        var components = URLComponents(url: baseURL.appendingPathComponent("/properties"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "sortBy", value: sortBy)
+        ]
+        
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+        
         return try await performRequest(
-            endpoint: "/properties",
+            url: url,
             method: "GET",
             requiresAuth: true
         )
@@ -199,6 +208,25 @@ class APIService {
             endpoint: "/properties/\(id)",
             method: "PUT",
             body: requestBody,
+            requiresAuth: true
+        )
+    }
+    
+    func updatePropertyStatus(id: String, status: PropertyStatus) async throws -> PropertyResponse {
+        let body = UpdatePropertyRequest(
+            title: nil,
+            description: nil,
+            address: nil,
+            images: nil,
+            price: nil,
+            pricingFrequency: nil,
+            allowBargaining: nil,
+            status: status
+        )
+        return try await performRequest(
+            endpoint: "/properties/\(id)",
+            method: "PUT",
+            body: body,
             requiresAuth: true
         )
     }
@@ -277,8 +305,8 @@ class APIService {
         )
     }
     
-    func sendMessage(conversationId: String, text: String) async throws -> MessageServiceResponse {
-        let body = SendMessageRequest(text: text)
+    func sendMessage(conversationId: String, text: String?, imageUrl: String?) async throws -> MessageServiceResponse {
+        let body = SendMessageRequest(text: text, imageUrl: imageUrl)
         return try await performRequest(
             endpoint: "/chat/\(conversationId)/messages",
             method: "POST",
@@ -306,6 +334,32 @@ class APIService {
             requiresAuth: true
         )
     }
+    
+    // MARK: - Upload
+    
+    func uploadImage(imageData: Data) async throws -> UploadResponse {
+        let url = baseURL.appendingPathComponent("/upload")
+        
+        guard let token = authToken else {
+            throw APIError.requestFailed(statusCode: 401, message: "Not authorized. No token available.")
+        }
+        
+        let boundary = UUID().uuidString
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"image\"; filename=\"upload.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+        
+        return try await sendAndDecode(request: request)
+    }
 
     
     // --- Private Helper Functions ---
@@ -318,6 +372,16 @@ class APIService {
     ) async throws -> T {
         
         let url = baseURL.appendingPathComponent(endpoint)
+        return try await performRequest(url: url, method: method, body: body, requiresAuth: requiresAuth)
+    }
+    
+    private func performRequest<T: Decodable, U: Encodable>(
+        url: URL,
+        method: String,
+        body: U,
+        requiresAuth: Bool = false
+    ) async throws -> T {
+        
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -341,6 +405,15 @@ class APIService {
     ) async throws -> T {
         
         let url = baseURL.appendingPathComponent(endpoint)
+        return try await performRequest(url: url, method: method, requiresAuth: requiresAuth)
+    }
+    
+    private func performRequest<T: Decodable>(
+        url: URL,
+        method: String,
+        requiresAuth: Bool = false
+    ) async throws -> T {
+        
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
