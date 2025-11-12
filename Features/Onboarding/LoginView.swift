@@ -9,115 +9,103 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @State private var isOTPSent: Bool = false
     
-    // --- MODIFICATION ---
-    // Define the brand green color
-    private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
-    
+    // Theme Colors
+    private let backgroundColor = Color(red: 44/255, green: 30/255, blue: 24/255)
+    private let buttonColor = Color(red: 219/255, green: 173/255, blue: 147/255)
+    private let textFieldColor = Color(red: 64/255, green: 43/255, blue: 34/255)
+    private let errorColor = Color(red: 239/255, green: 68/255, blue: 68/255)
+    private let lightTextColor = Color.white.opacity(0.9)
+    private let placeholderColor = Color.white.opacity(0.6)
+
     var body: some View {
-        VStack(spacing: 15) {
-            HStack {
-                Button {
-                    // --- MODIFICATION ---
-                    // If OTP is sent, back button goes to email step
-                    // Otherwise, it goes to Welcome
+        ZStack {
+            backgroundColor
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    
+                    Image(systemName: "app.dashed")
+                        .font(.system(size: 40))
+                        .foregroundColor(lightTextColor)
+                        .padding(.top, 40)
+                        .padding(.bottom, 20)
+
+                    Text(isOTPSent ? "Enter OTP" : "Log In")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundColor(lightTextColor)
+                    
                     if isOTPSent {
-                        isOTPSent = false
-                        errorMessage = nil
-                        otp = ""
+                        Text("Enter the 6-digit OTP code that we sent to")
+                            .font(.subheadline)
+                            .foregroundColor(lightTextColor.opacity(0.8))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text(email)
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 10)
+                            .foregroundColor(lightTextColor)
+
+                        OTPInputView(otp: $otp)
+                        
+                        TimerView(onResend: sendOTP)
+                            .padding(.top, 10)
+                            .colorScheme(.dark)
+
+                        AuthButton(title: "Confirm", icon: "arrow.right") {
+                            verifyLogin()
+                        }
+                        
                     } else {
-                        authState = .welcome
+                        
+                        Text("Email Address")
+                            .fontWeight(.medium)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .foregroundColor(lightTextColor)
+                        
+                        CustomTextField(
+                            text: $email,
+                            prompt: "Enter your email...",
+                            iconName: "envelope",
+                            isError: errorMessage != nil && !email.isEmpty
+                        )
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+
+                        AuthButton(title: "Send Login OTP", icon: "arrow.right") {
+                            sendOTP()
+                        }
                     }
-                } label: {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
+                    
+                    if let errorMessage = errorMessage {
+                        ErrorView(message: errorMessage)
+                    }
+                    
+                    Spacer()
                 }
+                .padding()
+            }
+            
+            VStack {
                 Spacer()
-            }
-            .padding(.bottom, 20)
-            
-            // --- MODIFICATION ---
-            // Show email or OTP title
-            Text(isOTPSent ? "Enter OTP" : "Log In")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            if isOTPSent {
-                // --- MODIFICATION ---
-                // Subtitle for OTP screen
-                Text("Enter the 6-digit OTP code that we sent to")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Text(email)
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 10)
-
-                // --- MODIFICATION ---
-                // Use the new OTPInputView
-                OTPInputView(otp: $otp)
-                
-                // --- MODIFICATION ---
-                // Use the new TimerView
-                TimerView(onResend: sendOTP)
-                    .padding(.top, 10)
-
-                Button("Confirm") { // Changed text
-                    verifyLogin()
+                Button {
+                    authState = .register
+                } label: {
+                    Text("Don't have an account? ")
+                        .foregroundColor(lightTextColor.opacity(0.7))
+                    + Text("Sign Up").underline()
+                        .foregroundColor(buttonColor)
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                // --- MODIFICATION ---
-                // Styled like the screenshot
-                .background(appGreen)
-                .foregroundColor(.white)
-                .cornerRadius(14)
-                .padding(.top, 20)
-                
-            } else {
-                // This is the original email entry screen
-                TextField("Email", text: $email)
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .textFieldStyle(.roundedBorder)
-                
-                Button("Send Login OTP") {
-                    sendOTP()
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                // --- MODIFICATION ---
-                // Use the brand green here too
-                .background(appGreen)
-                .foregroundColor(.white)
-                .cornerRadius(14)
+                .padding(.bottom, 20)
             }
-            
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding()
-            }
-            
-            Spacer()
-            
-            Button {
-                authState = .register
-            } label: {
-                Text("Don't have an account? ")
-                + Text("Sign Up").fontWeight(.bold)
-            }
-            .padding(.top)
         }
-        .padding()
     }
     
     func sendOTP() {
-        // --- MODIFICATION ---
-        // Clear old OTP and error when resending
         otp = ""
         errorMessage = nil
         Task {
@@ -142,5 +130,79 @@ struct LoginView: View {
                 self.errorMessage = error.localizedDescription
             }
         }
+    }
+}
+
+// MARK: - Reusable Themed Components
+
+private let backgroundColor = Color(red: 44/255, green: 30/255, blue: 24/255)
+private let buttonColor = Color(red: 219/255, green: 173/255, blue: 147/255)
+private let textFieldColor = Color(red: 64/255, green: 43/255, blue: 34/255)
+private let errorColor = Color(red: 239/255, green: 68/255, blue: 68/255)
+private let lightTextColor = Color.white.opacity(0.9)
+private let placeholderColor = Color.white.opacity(0.6)
+
+struct CustomTextField: View {
+    @Binding var text: String
+    var prompt: String
+    var iconName: String
+    var isError: Bool = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: iconName)
+                .foregroundColor(placeholderColor)
+            
+            TextField("", text: $text, prompt: Text(prompt).foregroundColor(placeholderColor))
+                .foregroundColor(lightTextColor)
+        }
+        .padding()
+        .background(textFieldColor)
+        .cornerRadius(100) // Fully rounded corners
+        .overlay(
+            RoundedRectangle(cornerRadius: 100)
+                .stroke(isError ? errorColor : Color.clear, lineWidth: 1.5)
+        )
+    }
+}
+
+struct AuthButton: View {
+    var title: String
+    var icon: String? = nil
+    var action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Spacer()
+                Text(title)
+                    .fontWeight(.bold)
+                if let icon = icon {
+                    Image(systemName: icon)
+                }
+                Spacer()
+            }
+            .padding()
+            .background(buttonColor)
+            .foregroundColor(backgroundColor)
+            .cornerRadius(100)
+        }
+    }
+}
+
+struct ErrorView: View {
+    var message: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "exclamationmark.triangle.fill")
+            Text(message)
+                .fontWeight(.medium)
+            Spacer()
+        }
+        .padding(12)
+        .foregroundColor(errorColor)
+        .background(errorColor.opacity(0.1))
+        .cornerRadius(8)
     }
 }

@@ -6,7 +6,7 @@ struct PropertyDetailView: View {
     @State private var errorMessage: String?
     @State private var successMessage: String?
     
-    private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
+    private let appGreen = Color(red: 104/255, green: 222/255, blue: 122/255)
     
     var body: some View {
         ScrollView {
@@ -19,12 +19,12 @@ struct PropertyDetailView: View {
                         .clipped()
                 } placeholder: {
                     Rectangle()
-                        .fill(Color(.secondarySystemBackground))
+                        .fill(Color(white: 0.1))
                         .frame(height: 250)
                         .overlay(
                             Image(systemName: "house.fill")
                                 .font(.largeTitle)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.gray)
                         )
                 }
                 
@@ -56,8 +56,8 @@ struct PropertyDetailView: View {
                             Text("Bargaining Allowed")
                                 .font(.caption)
                                 .padding(8)
-                                .background(Color.green.opacity(0.1))
-                                .foregroundColor(.green)
+                                .background(appGreen.opacity(0.1))
+                                .foregroundColor(appGreen)
                                 .cornerRadius(8)
                         }
                     }
@@ -77,9 +77,9 @@ struct PropertyDetailView: View {
                         .font(.title3)
                         .fontWeight(.semibold)
                     
-                    Text("\(property.owner.firstName) \(property.owner.lastName)")
+                    Text("\(property.owner.firstName ?? "Unknown") \(property.owner.lastName ?? "Owner")")
                         .font(.body)
-                    Text(property.owner.email)
+                    Text(property.owner.email ?? "No email provided")
                         .font(.subheadline)
                         .tint(appGreen)
                     
@@ -105,7 +105,7 @@ struct PropertyDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(appGreen)
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .cornerRadius(14)
                     }
                     .disabled(successMessage != nil)
@@ -116,6 +116,7 @@ struct PropertyDetailView: View {
         }
         .navigationTitle("Property Details")
         .navigationBarTitleDisplayMode(.inline)
+        .background(Color.black.edgesIgnoringSafeArea(.all))
     }
     
     func requestRental() {

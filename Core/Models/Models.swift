@@ -55,9 +55,9 @@ enum PropertyStatus: String, CaseIterable, Identifiable, Codable {
 }
 
 struct PropertyOwner: Codable {
-    let firstName: String
-    let lastName: String
-    let email: String
+    let firstName: String?
+    let lastName: String?
+    let email: String?
 }
 
 struct Property: Codable, Identifiable, Hashable {
@@ -128,8 +128,8 @@ struct RentalProperty: Codable, Identifiable {
     let id: String
     let title: String
     let images: [String]
-    let price: Double
-    let pricingFrequency: PricingFrequency
+    let price: Double?
+    let pricingFrequency: PricingFrequency?
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -139,8 +139,8 @@ struct RentalProperty: Codable, Identifiable {
 
 struct RentalUser: Codable, Identifiable, Equatable {
     let id: String
-    let firstName: String
-    let lastName: String
+    let firstName: String?
+    let lastName: String?
     let email: String?
     
     enum CodingKeys: String, CodingKey {
@@ -165,8 +165,8 @@ struct Rental: Codable, Identifiable {
 struct ConversationRentalProperty: Codable {
     let title: String
     let images: [String]
-    let price: Double
-    let pricingFrequency: PricingFrequency
+    let price: Double?
+    let pricingFrequency: PricingFrequency?
     
     enum CodingKeys: String, CodingKey {
         case title, images, price, pricingFrequency
@@ -217,8 +217,6 @@ struct Message: Codable, Identifiable, Equatable {
     }
 }
 
-
-// MARK: - API Payloads
 
 struct AuthResponse: Codable {
     let success: Bool

@@ -3,7 +3,7 @@ import SwiftUI
 struct PropertyCardView: View {
     let property: Property
     
-    private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
+    private let appGreen = Color(red: 104/255, green: 222/255, blue: 122/255)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -15,12 +15,12 @@ struct PropertyCardView: View {
                     .clipped()
             } placeholder: {
                 Rectangle()
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(Color(white: 0.1))
                     .frame(height: 180)
                     .overlay(
                         Image(systemName: "house.fill")
                             .font(.largeTitle)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.gray)
                     )
             }
             .overlay(alignment: .topLeading) {
@@ -40,11 +40,12 @@ struct PropertyCardView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(property.title)
                     .font(.headline)
+                    .foregroundColor(.white)
                     .lineLimit(1)
                 
                 Text(property.address)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.gray)
                     .lineLimit(1)
                 
                 HStack {
@@ -55,18 +56,19 @@ struct PropertyCardView: View {
                     
                     Text("/ \(property.pricingFrequency.displayName)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.gray)
                     
                     Spacer()
                 }
             }
             .padding()
         }
-        .background(Color(.systemBackground))
+        .background(Color.black)
         .cornerRadius(14)
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color(.separator).opacity(0.5), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
         )
     }
 }
+

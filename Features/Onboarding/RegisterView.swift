@@ -1,14 +1,4 @@
-//
-//  RegisterView.swift
-//  HRENT
-//
-//  Created by Sayan  Maity  on 31/10/25.
-//
 import SwiftUI
-
-// --- MODIFICATION ---
-// The UserType enum definition is REMOVED from this file.
-// It is now in Models.swift.
 
 struct RegisterView: View {
     @Binding var loggedInUser: User?
@@ -19,110 +9,129 @@ struct RegisterView: View {
     @State private var email: String = ""
     @State private var otp: String = ""
     
-    // This will now correctly find the global UserType from Models.swift
     @State private var userType: UserType = .user
     
     @State private var errorMessage: String?
     @State private var isOTPSent: Bool = false
     
-    private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
-    
+    // Theme Colors
+    private let backgroundColor = Color(red: 44/255, green: 30/255, blue: 24/255)
+    private let buttonColor = Color(red: 219/255, green: 173/255, blue: 147/255)
+    private let textFieldColor = Color(red: 64/255, green: 43/255, blue: 34/255)
+    private let errorColor = Color(red: 239/255, green: 68/255, blue: 68/255)
+    private let lightTextColor = Color.white.opacity(0.9)
+    private let placeholderColor = Color.white.opacity(0.6)
+
     var body: some View {
-        VStack(spacing: 15) {
-            HStack {
-                Button {
+        ZStack {
+            backgroundColor
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    
+                    Image(systemName: "app.dashed")
+                        .font(.system(size: 40))
+                        .foregroundColor(lightTextColor)
+                        .padding(.top, 40)
+                        .padding(.bottom, 20)
+
+                    Text(isOTPSent ? "Enter OTP" : "Sign Up For Free")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundColor(lightTextColor)
+                    
                     if isOTPSent {
-                        isOTPSent = false
-                        errorMessage = nil
-                        otp = ""
+                        Text("Enter the 6-digit OTP code that we sent to")
+                            .font(.subheadline)
+                            .foregroundColor(lightTextColor.opacity(0.8))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Text(email)
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 10)
+                            .foregroundColor(lightTextColor)
+                        
+                        OTPInputView(otp: $otp)
+                        
+                        TimerView(onResend: sendOTP)
+                            .padding(.top, 10)
+                            .colorScheme(.dark)
+
+                        AuthButton(title: "Confirm & Sign Up", icon: "arrow.right") {
+                            verifyRegistration()
+                        }
+                        
                     } else {
-                        authState = .welcome
+                        
+                        CustomTextField(
+                            text: $firstName,
+                            prompt: "Enter your first name...",
+                            iconName: "person",
+                            isError: errorMessage != nil && firstName.isEmpty
+                        )
+                        
+                        CustomTextField(
+                            text: $lastName,
+                            prompt: "Enter your last name...",
+                            iconName: "person",
+                            isError: errorMessage != nil && lastName.isEmpty
+                        )
+                        
+                        Text("Email Address")
+                            .fontWeight(.medium)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .foregroundColor(lightTextColor)
+                        
+                        CustomTextField(
+                            text: $email,
+                            prompt: "Enter your email...",
+                            iconName: "envelope",
+                            isError: errorMessage != nil && !email.contains("@")
+                        )
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                        
+                        Picker("I am a...", selection: $userType) {
+                            ForEach(UserType.allCases) { type in
+                                Text(type.displayName).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(4)
+                        .background(textFieldColor)
+                        .cornerRadius(8)
+
+                        AuthButton(title: "Send Registration OTP", icon: "arrow.right") {
+                            sendOTP()
+                        }
                     }
-                } label: {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
+                    
+                    if let errorMessage = errorMessage {
+                        ErrorView(message: errorMessage)
+                    }
+                    
+                    Spacer()
                 }
+                .padding()
+            }
+            
+            VStack {
                 Spacer()
-            }
-            .padding(.bottom, 20)
-            
-            Text(isOTPSent ? "Enter OTP" : "Sign Up")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            if isOTPSent {
-                Text("Enter the 6-digit OTP code that we sent to")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Text(email)
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 10)
-                
-                OTPInputView(otp: $otp)
-                
-                TimerView(onResend: sendOTP)
-                    .padding(.top, 10)
-
-                Button("Confirm & Sign Up") {
-                    verifyRegistration()
+                Button {
+                    authState = .login
+                } label: {
+                    Text("Already have an account? ")
+                        .foregroundColor(lightTextColor.opacity(0.7))
+                    + Text("Sign In").underline()
+                        .foregroundColor(buttonColor)
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(appGreen)
-                .foregroundColor(.white)
-                .cornerRadius(14)
-                .padding(.top, 20)
-                
-            } else {
-                TextField("First Name", text: $firstName)
-                    .textFieldStyle(.roundedBorder)
-                TextField("Last Name", text: $lastName)
-                    .textFieldStyle(.roundedBorder)
-                TextField("Email", text: $email)
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .textFieldStyle(.roundedBorder)
-                
-                // This Picker will now work and won't cause the "Generic parameter" error
-                Picker("I am a...", selection: $userType) {
-                    ForEach(UserType.allCases) { type in
-                        Text(type.displayName).tag(type)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Button("Send Registration OTP") {
-                    sendOTP()
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(appGreen)
-                .foregroundColor(.white)
-                .cornerRadius(14)
+                .padding(.bottom, 20)
             }
-            
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding()
-            }
-            
-            Spacer()
-            
-            Button {
-                authState = .login
-            } label: {
-                Text("Already have an account? ")
-                + Text("Log In").fontWeight(.bold)
-            }
-            .padding(.top)
         }
-        .padding()
     }
     
     func sendOTP() {
@@ -130,9 +139,6 @@ struct RegisterView: View {
         errorMessage = nil
         Task {
             do {
-                // --- MODIFICATION ---
-                // We now pass the 'userType' enum case directly.
-                // JSONEncoder will handle converting it to a string ("user" or "owner").
                 _ = try await APIService.shared.sendRegistrationOTP(
                     firstName: firstName,
                     lastName: lastName,

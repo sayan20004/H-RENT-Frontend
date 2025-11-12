@@ -6,71 +6,140 @@ enum AuthState {
     case register
 }
 
+enum Tab {
+    case browse
+    case myProperties
+    case requests
+    case myRentals
+    case chat
+    case profile
+}
+
 struct ContentView: View {
     @State private var loggedInUser: User? = nil
     @State private var authState: AuthState = .welcome
     @State private var isLoading: Bool = true
     
-    private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
+    @State private var selectedTab: Tab = .browse
+    
+    private let appGreen = Color(red: 104/255, green: 222/255, blue: 122/255)
 
     var body: some View {
-        if isLoading {
-            ProgressView()
-                .task {
-                    await checkInitialAuth()
+        Group { 
+            if isLoading {
+                ZStack {
+                    Color.black.edgesIgnoringSafeArea(.all)
+                    ProgressView()
+                        .task {
+                            await checkInitialAuth()
+                        }
                 }
+                .preferredColorScheme(.dark)
+            }
+            else if let user = loggedInUser {
+                ZStack(alignment: .bottom) {
+                    Color.black
+                        .edgesIgnoringSafeArea(.all)
+                    
+                    currentView(for: user)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    
+                    customTabBar(for: user)
+                }
+                .preferredColorScheme(.dark)
+            } else {
+                switch authState {
+                case .welcome:
+                    WelcomeView(authState: $authState)
+                case .login:
+                    LoginView(loggedInUser: $loggedInUser, authState: $authState)
+                case .register:
+                    RegisterView(loggedInUser: $loggedInUser, authState: $authState)
+                }
+            }
         }
-        else if let user = loggedInUser {
-            TabView {
+        
+        .onChange(of: loggedInUser?.id, { oldValue, newValue in
+            
+            if let user = loggedInUser {
                 if user.userType == .owner {
-                    HomeView(loggedInUser: $loggedInUser)
-                        .tabItem {
-                            Label("Browse", systemImage: "magnifyingglass")
-                        }
-                    
-                    OwnerDashboardView(loggedInUser: $loggedInUser)
-                        .tabItem {
-                            Label("My Properties", systemImage: "list.bullet")
-                        }
-                    
-                    IncomingRentalsView()
-                        .tabItem {
-                            Label("Requests", systemImage: "bell.fill")
-                        }
-                    
+                    selectedTab = .myProperties
                 } else {
-                    HomeView(loggedInUser: $loggedInUser)
-                        .tabItem {
-                            Label("Browse", systemImage: "magnifyingglass")
-                        }
-                    
-                    MyRentalsView()
-                        .tabItem {
-                            Label("My Rentals", systemImage: "key.fill")
-                        }
+                    selectedTab = .browse
                 }
-                
-                ChatListView()
-                    .tabItem {
-                        Label("Chat", systemImage: "message.fill")
-                    }
-                
-                ProfileSettingsView(loggedInUser: $loggedInUser)
-                    .tabItem {
-                        Label("Profile", systemImage: "person.fill")
-                    }
             }
-            .tint(appGreen)
-        } else {
-            switch authState {
-            case .welcome:
-                WelcomeView(authState: $authState)
-            case .login:
-                LoginView(loggedInUser: $loggedInUser, authState: $authState)
-            case .register:
-                RegisterView(loggedInUser: $loggedInUser, authState: $authState)
-            }
+        })
+    }
+    
+    @ViewBuilder
+    func currentView(for user: User) -> some View {
+        switch selectedTab {
+        case .browse:
+            HomeView(loggedInUser: $loggedInUser)
+        case .myProperties:
+            OwnerDashboardView(loggedInUser: $loggedInUser)
+        case .requests:
+            IncomingRentalsView()
+        case .myRentals:
+            MyRentalsView()
+        case .chat:
+            ChatListView()
+        case .profile:
+            ProfileSettingsView(loggedInUser: $loggedInUser)
         }
+    }
+    
+    @ViewBuilder
+    func customTabBar(for user: User) -> some View {
+        HStack(spacing: 0) {
+            
+            // --- EDIT: This tab only appears for non-owners ---
+            if user.userType != .owner {
+                TabButton(
+                    icon: "magnifyingglass",
+                    text: "Browse",
+                    isSelected: selectedTab == .browse
+                ) { selectedTab = .browse }
+            }
+            
+            if user.userType == .owner {
+                TabButton(
+                    icon: "list.bullet",
+                    text: "My Properties",
+                    isSelected: selectedTab == .myProperties
+                ) { selectedTab = .myProperties }
+                
+                TabButton(
+                    icon: "bell.fill",
+                    text: "Requests",
+                    isSelected: selectedTab == .requests
+                ) { selectedTab = .requests }
+            } else {
+                TabButton(
+                    icon: "key.fill",
+                    text: "My Rentals",
+                    isSelected: selectedTab == .myRentals
+                ) { selectedTab = .myRentals }
+            }
+            
+            TabButton(
+                icon: "message.fill",
+                text: "Chat",
+                isSelected: selectedTab == .chat
+            ) { selectedTab = .chat }
+            
+            TabButton(
+                icon: "person.fill",
+                text: "Profile",
+                isSelected: selectedTab == .profile
+            ) { selectedTab = .profile }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
+        .background(Color(white: 0.15).opacity(0.8))
+        .clipShape(Capsule())
+        .padding(.horizontal)
+        .padding(.bottom, 5)
     }
     
     func checkInitialAuth() async {
@@ -87,8 +156,39 @@ struct ContentView: View {
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
+struct TabButton: View {
+    let icon: String
+    let text: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    private let appGreen = Color(red: 104/255, green: 222/255, blue: 122/255)
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                if isSelected {
+                    ZStack {
+                        Circle()
+                            .fill(appGreen.opacity(0.2))
+                            .frame(width: 38, height: 38)
+                        
+                        Image(systemName: icon)
+                            .font(.system(size: 18))
+                            .foregroundColor(appGreen)
+                    }
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundColor(Color.gray)
+                        .frame(width: 38, height: 38)
+                }
+                
+                Text(text)
+                    .font(.system(size: 10))
+                    .foregroundColor(isSelected ? appGreen : Color.gray)
+            }
+            .frame(maxWidth: .infinity)
+        }
     }
 }

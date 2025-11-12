@@ -6,94 +6,117 @@ struct IncomingRentalsView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     
-    private let appGreen = Color(red: 62/255, green: 178/255, blue: 82/255)
+    private let appGreen = Color(red: 104/255, green: 222/255, blue: 122/255)
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all)
+            
+            NavigationView {
+                VStack {
                     if isLoading {
                         ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if let errorMessage = errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
+                        ErrorStateView(message: errorMessage) {
+                            Task {
+                                await loadIncomingRentals()
+                            }
+                        }
                     } else if rentals.isEmpty {
-                        Text("You have no incoming rental requests.")
-                            .foregroundColor(.secondary)
-                            .padding(.top, 50)
+                        VStack(spacing: 10) {
+                            Image(systemName: "bell.slash.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                            Text("No Incoming Requests")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Text("You have no pending rental requests from users.")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        ForEach($rentals) { $rental in
-                            VStack(spacing: 0) {
-                                RentalCardView(rental: rental)
-                                
-                                if rental.status == .pending {
-                                    HStack(spacing: 10) {
-                                        Button("Deny") {
-                                            updateStatus(for: $rental, to: .denied)
-                                        }
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                        .background(Color.red)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(10)
+                        ScrollView {
+                            VStack(spacing: 16) {
+                                ForEach($rentals) { $rental in
+                                    VStack(spacing: 0) {
+                                        RentalCardView(rental: rental)
                                         
-                                        Button("Accept") {
-                                            updateStatus(for: $rental, to: .accepted)
+                                        if rental.status == .pending {
+                                            HStack(spacing: 10) {
+                                                Button("Deny") {
+                                                    updateStatus(for: $rental, to: .denied)
+                                                }
+                                                .padding()
+                                                .frame(maxWidth: .infinity)
+                                                .background(Color.red)
+                                                .foregroundColor(.white)
+                                                .cornerRadius(10)
+                                                
+                                                Button("Accept") {
+                                                    updateStatus(for: $rental, to: .accepted)
+                                                }
+                                                .padding()
+                                                .frame(maxWidth: .infinity)
+                                                .background(appGreen)
+                                                .foregroundColor(.black)
+                                                .cornerRadius(10)
+                                            }
+                                            .padding(.horizontal)
+                                            .padding(.bottom)
+                                        } else if rental.status == .cancellationRequested {
+                                            HStack(spacing: 10) {
+                                                Button("Deny Cancellation") {
+                                                    updateStatus(for: $rental, to: .accepted)
+                                                }
+                                                .padding()
+                                                .frame(maxWidth: .infinity)
+                                                .background(Color.red)
+                                                .foregroundColor(.white)
+                                                .cornerRadius(10)
+                                                
+                                                Button("Approve Cancellation") {
+                                                    updateStatus(for: $rental, to: .cancelled)
+                                                }
+                                                .padding()
+                                                .frame(maxWidth: .infinity)
+                                                .background(appGreen)
+                                                .foregroundColor(.black)
+                                                .cornerRadius(10)
+                                            }
+                                            .padding(.horizontal)
+                                            .padding(.bottom)
+                                        } else if rental.status == .accepted {
+                                            NavigationLink(destination: ChatNavigator(rentalId: rental.id)) {
+                                                Text("Contact Tenant")
+                                                    .padding()
+                                                    .frame(maxWidth: .infinity)
+                                                    .background(appGreen)
+                                                    .foregroundColor(.black)
+                                                    .cornerRadius(10)
+                                            }
+                                            .padding(.horizontal)
+                                            .padding(.bottom)
                                         }
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                        .background(appGreen)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(10)
                                     }
-                                    .padding(.horizontal)
-                                    .padding(.bottom)
-                                } else if rental.status == .cancellationRequested {
-                                    HStack(spacing: 10) {
-                                        Button("Deny Cancellation") {
-                                            updateStatus(for: $rental, to: .accepted)
-                                        }
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                        .background(Color.red)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(10)
-                                        
-                                        Button("Approve Cancellation") {
-                                            updateStatus(for: $rental, to: .cancelled)
-                                        }
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                        .background(appGreen)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(10)
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.bottom)
-                                } else if rental.status == .accepted {
-                                    NavigationLink(destination: ChatNavigator(rentalId: rental.id)) {
-                                        Text("Contact Tenant")
-                                            .padding()
-                                            .frame(maxWidth: .infinity)
-                                            .background(appGreen)
-                                            .foregroundColor(.white)
-                                            .cornerRadius(10)
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.bottom)
                                 }
                             }
+                            .padding()
+                            .padding(.bottom, 80)
                         }
                     }
                 }
-                .padding()
-            }
-            .navigationTitle("Incoming Requests")
-            .task {
-                await loadIncomingRentals()
-            }
-            .refreshable {
-                 await loadIncomingRentals()
+                .background(Color.black)
+                .navigationTitle("Incoming Requests")
+                .task {
+                    await loadIncomingRentals()
+                }
+                .refreshable {
+                     await loadIncomingRentals()
+                }
             }
         }
     }

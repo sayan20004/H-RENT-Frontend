@@ -26,54 +26,67 @@ struct HomeView: View {
     @State private var errorMessage: String?
     @State private var sortBy: SortOption = .latest
     
+    // Define the accent color
+    private let appGreen = Color(red: 104/255, green: 222/255, blue: 122/255)
+    
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    if isLoading {
-                        ProgressView()
-                    } else if let errorMessage = errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
-                            .padding()
-                    } else if properties.isEmpty {
-                        Text("No properties available right now.")
-                            .foregroundColor(.secondary)
-                            .padding(.top, 50)
-                    } else {
-                        ForEach(properties) { property in
-                            NavigationLink(destination: PropertyDetailView(property: property)) {
-                                PropertyCardView(property: property)
+        // Wrap in ZStack to add black background
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all)
+            
+            NavigationView {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        if isLoading {
+                            ProgressView()
+                        } else if let errorMessage = errorMessage {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .padding()
+                        } else if properties.isEmpty {
+                            Text("No properties available right now.")
+                                .foregroundColor(.secondary)
+                                .padding(.top, 50)
+                        } else {
+                            ForEach(properties) { property in
+                                NavigationLink(destination: PropertyDetailView(property: property)) {
+                                    PropertyCardView(property: property)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding()
+                    .padding(.bottom, 80) // Add padding to not be hidden by tab bar
+                }
+                .navigationTitle("Browse Properties")
+                .background(Color.black) // Set background for scroll view
+                .toolbar {
+                    
+                    // Sorting menu icon
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Menu {
+                            Picker("Sort By", selection: $sortBy) {
+                                ForEach(SortOption.allCases) { option in
+                                    Text(option.displayName).tag(option)
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .foregroundColor(Color.gray)
                         }
                     }
                 }
-                .padding()
-            }
-            .navigationTitle("Browse Properties")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Picker("Sort By", selection: $sortBy) {
-                            ForEach(SortOption.allCases) { option in
-                                Text(option.displayName).tag(option)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                    }
-                }
-            }
-            .task {
-                await loadProperties()
-            }
-            .refreshable {
-                await loadProperties()
-            }
-            .onChange(of: sortBy) {
-                Task {
+                .task {
                     await loadProperties()
+                }
+                .refreshable {
+                    await loadProperties()
+                }
+                .onChange(of: sortBy) {
+                    Task {
+                        await loadProperties()
+                    }
                 }
             }
         }
