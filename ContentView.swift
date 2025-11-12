@@ -23,6 +23,11 @@ struct ContentView: View {
         else if let user = loggedInUser {
             TabView {
                 if user.userType == .owner {
+                    HomeView(loggedInUser: $loggedInUser)
+                        .tabItem {
+                            Label("Browse", systemImage: "magnifyingglass")
+                        }
+                    
                     OwnerDashboardView(loggedInUser: $loggedInUser)
                         .tabItem {
                             Label("My Properties", systemImage: "list.bullet")
