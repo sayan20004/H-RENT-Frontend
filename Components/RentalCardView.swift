@@ -26,15 +26,11 @@ struct RentalCardView: View {
                     .font(.headline)
                     .lineLimit(1)
                 
-                if let frequency = rental.property.pricingFrequency {
-                    Text("$\(String(format: "%.2f", rental.property.price ?? 0.0)) / \(frequency.displayName)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("$\(String(format: "%.2f", rental.property.price ?? 0.0))")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+                let priceString = String(format: "%.2f", rental.property.price ?? 0.0)
+                let frequencyText = rental.property.pricingFrequency.displayName
+                Text("$\(priceString) / \(frequencyText)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
                 
                 Spacer()
                 

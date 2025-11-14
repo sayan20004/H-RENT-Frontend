@@ -91,7 +91,9 @@ struct ChatDetailView: View {
                     .disabled(newMessageText.isEmpty)
                 }
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.top, 12)
+            .padding(.bottom, 80)
         }
         .navigationTitle(conversation.rental.property.title)
         .navigationBarTitleDisplayMode(.inline)

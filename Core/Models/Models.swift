@@ -128,8 +128,8 @@ struct RentalProperty: Codable, Identifiable {
     let id: String
     let title: String
     let images: [String]
-    let price: Double?
-    let pricingFrequency: PricingFrequency?
+    let price: Double
+    let pricingFrequency: PricingFrequency
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -166,8 +166,8 @@ struct ConversationRentalProperty: Codable, Identifiable {
     let id: String
     let title: String
     let images: [String]
-    let price: Double?
-    let pricingFrequency: PricingFrequency?
+    let price: Double
+    let pricingFrequency: PricingFrequency
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -183,10 +183,12 @@ struct Conversation: Codable, Identifiable {
     let id: String
     let rental: ConversationRental
     let participants: [RentalUser]
+    let createdAt: String
+    let updatedAt: String
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case rental, participants
+        case rental, participants, createdAt, updatedAt
     }
 }
 
@@ -200,11 +202,13 @@ struct Message: Codable, Identifiable, Equatable {
     let id: String
     let conversation: String
     let sender: RentalUser
+    let receiver: String
     var text: String?
     var imageUrl: String?
     var isEdited: Bool?
     var reactions: [Reaction]
     let createdAt: String
+    let updatedAt: String
     
     var canBeEdited: Bool {
         guard imageUrl == nil, let date = ISO8601DateFormatter().date(from: createdAt) else {
@@ -215,7 +219,7 @@ struct Message: Codable, Identifiable, Equatable {
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case conversation, sender, text, imageUrl, isEdited, reactions, createdAt
+        case conversation, sender, receiver, text, imageUrl, isEdited, reactions, createdAt, updatedAt
     }
 }
 
