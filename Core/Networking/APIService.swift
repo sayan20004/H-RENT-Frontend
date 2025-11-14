@@ -62,6 +62,9 @@ class APIService {
       
       var base64String = String(segments[1])
       
+      base64String = base64String.replacingOccurrences(of: "-", with: "+")
+      base64String = base64String.replacingOccurrences(of: "_", with: "/")
+      
       let requiredLength = 4 * ceil(Double(base64String.count) / 4.0)
       let paddingLength = Int(requiredLength) - base64String.count
       if paddingLength > 0 {
@@ -77,7 +80,7 @@ class APIService {
     }
 
     
-    // MARK: - Auth
+    
     
     func sendRegistrationOTP(firstName: String, lastName: String, email: String, userType: UserType) async throws -> MessageResponse {
         let body = RegistrationOTPRequest(firstName: firstName, lastName: lastName, email: email, userType: userType)
@@ -130,7 +133,7 @@ class APIService {
         return response
     }
     
-    // MARK: - User
+    
     
     func getUserProfile() async throws -> UserProfileResponse {
         return try await performRequest(
@@ -150,7 +153,7 @@ class APIService {
         )
     }
     
-    // MARK: - Properties
+    
     
     func getAllProperties(sortBy: String) async throws -> PropertiesResponse {
         var components = URLComponents(url: baseURL.appendingPathComponent("/properties"), resolvingAgainstBaseURL: false)!
@@ -239,7 +242,7 @@ class APIService {
         )
     }
     
-    // MARK: - Rentals
+    
     
     func createRentalRequest(propertyId: String) async throws -> RentalResponse {
         let body = CreateRentalRequest(propertyId: propertyId)
@@ -277,7 +280,7 @@ class APIService {
         )
     }
     
-    // MARK: - Chat
+    
     
     func getMyConversations() async throws -> ConversationsResponse {
         return try await performRequest(
@@ -335,7 +338,7 @@ class APIService {
         )
     }
     
-    // MARK: - Upload
+    
     
     func uploadImage(imageData: Data) async throws -> UploadResponse {
         let url = baseURL.appendingPathComponent("/upload")
@@ -362,7 +365,7 @@ class APIService {
     }
 
     
-    // --- Private Helper Functions ---
+    
     
     private func performRequest<T: Decodable, U: Encodable>(
         endpoint: String,
