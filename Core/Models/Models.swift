@@ -162,13 +162,15 @@ struct Rental: Codable, Identifiable {
     }
 }
 
-struct ConversationRentalProperty: Codable {
+struct ConversationRentalProperty: Codable, Identifiable {
+    let id: String
     let title: String
     let images: [String]
     let price: Double?
     let pricingFrequency: PricingFrequency?
     
     enum CodingKeys: String, CodingKey {
+        case id = "_id"
         case title, images, price, pricingFrequency
     }
 }

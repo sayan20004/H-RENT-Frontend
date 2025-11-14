@@ -3,6 +3,8 @@ import SwiftUI
 public struct ErrorStateView: View {
     private let message: String
     private let retryAction: () -> Void
+    
+    private let appGreen = Color(red: 104/255, green: 222/255, blue: 122/255)
 
     public init(message: String, retryAction: @escaping () -> Void) {
         self.message = message
@@ -13,25 +15,29 @@ public struct ErrorStateView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 40))
-                .foregroundColor(.yellow)
-            Text("Something went wrong")
+                .foregroundColor(.gray)
+            
+            Text("Something Went Wrong")
                 .font(.headline)
                 .foregroundColor(.white)
-            Text(message)
+            
+            Text("Could not load content. Please check your connection and try again.")
                 .font(.subheadline)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
-            Button("Retry") {
-                retryAction()
+            
+            Button(action: retryAction) {
+                Text("Try Again")
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 40)
+                    .padding(.vertical, 12)
+                    .background(appGreen)
+                    .foregroundColor(.black)
+                    .cornerRadius(100)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
         }
         .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.opacity(0))
     }
 }
